@@ -35,9 +35,14 @@ def extract_machine_code(text):
 
 def check_and_reply():
     # 1. 连接 IMAP 收取邮件
+
     mail = imaplib.IMAP4_SSL(IMAP_SERVER)
     mail.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-    mail.select("INBOX")
+   status, _ = mail.select("INBOX")
+if status != "OK":
+    print("无法选中收件箱，请检查邮箱权限或网络")
+    mail.logout()
+    return
 
     # 2. 搜索未读邮件
     status, data = mail.search(None, "UNSEEN")
