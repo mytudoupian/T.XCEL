@@ -38,13 +38,13 @@ def check_and_reply():
     mail = imaplib.IMAP4_SSL(IMAP_SERVER)
     mail.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
 
-    # 选中收件箱，并检查是否成功
+    # 选中收件箱，并打印详细状态
     status, data = mail.select("INBOX")
     print(f"📬 Select INBOX 结果: 状态={status}, 数据={data}")
- if status != "OK":
-    print("❌ 无法选中收件箱，错误详情如上，请检查 163 邮箱权限")
-    mail.logout()
-    return
+    if status != "OK":
+        print("❌ 无法选中收件箱，请检查 163 邮箱权限或网络")
+        mail.logout()
+        return
 
     # 2. 搜索未读邮件
     status, data = mail.search(None, "UNSEEN")
@@ -58,9 +58,7 @@ def check_and_reply():
             continue
 
         msg = email.message_from_bytes(msg_data[0][1])
-        # 获取发件人
         from_addr = email.utils.parseaddr(msg.get("From"))[1]
-        # 获取邮件主题（优先）或正文
         subject = msg.get("Subject", "")
         if not subject:
             for part in msg.walk():
@@ -91,7 +89,7 @@ def check_and_reply():
 
         print(f"已回复 {from_addr}")
 
-        # 5. 将邮件标记为已读，避免重复处理
+        # 5. 将邮件标记为已读
         mail.store(num, "+FLAGS", "\\Seen")
 
     mail.close()
