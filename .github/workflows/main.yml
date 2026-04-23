@@ -2,9 +2,7 @@ name: Email Auto Reply
 
 on:
   schedule:
-    - cron: "*/15 8-21 * * *"   # 8:00, 8:15, ... 21:45
-    - cron: "*/15 8-21 * * *"   # 8:00-21:45 每 15 分钟
-    - cron: "0 22 * * *"        # 22:00 一次
+   - cron: "*/10 * * * *"   # 8:00, 8:15, ... 21:45
   workflow_dispatch:   # 允许手动触发测试
 
 jobs:
