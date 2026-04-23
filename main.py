@@ -39,8 +39,8 @@ def check_and_reply():
     mail.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
 
     # 选中收件箱，并检查是否成功
-  status, data = mail.select("INBOX")
- print(f"📬 Select INBOX 结果: 状态={status}, 数据={data}")
+    status, data = mail.select("INBOX")
+    print(f"📬 Select INBOX 结果: 状态={status}, 数据={data}")
  if status != "OK":
     print("❌ 无法选中收件箱，错误详情如上，请检查 163 邮箱权限")
     mail.logout()
