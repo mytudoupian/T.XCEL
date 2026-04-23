@@ -113,7 +113,7 @@ def check_and_reply():
             msg_reply = MIMEText(reply_text, "plain", "utf-8")
             msg_reply["From"] = EMAIL_ADDRESS
             msg_reply["To"] = from_addr
-            msg_reply["Subject"] = Header("自动回复：您的激活码", "utf-8")
+            msg_reply["Subject"] = Header("[T.XCEL自动回复]：您的激活码", "utf-8")
 
             with smtplib.SMTP_SSL(SMTP_SERVER) as smtp:
                 smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
