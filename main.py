@@ -35,14 +35,15 @@ def extract_machine_code(text):
 
 def check_and_reply():
     # 1. 连接 IMAP 收取邮件
-
     mail = imaplib.IMAP4_SSL(IMAP_SERVER)
     mail.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-   status, _ = mail.select("INBOX")
-if status != "OK":
-    print("无法选中收件箱，请检查邮箱权限或网络")
-    mail.logout()
-    return
+
+    # 选中收件箱，并检查是否成功
+    status, _ = mail.select("INBOX")
+    if status != "OK":
+        print("无法选中收件箱，请检查邮箱权限或网络")
+        mail.logout()
+        return
 
     # 2. 搜索未读邮件
     status, data = mail.search(None, "UNSEEN")
@@ -58,9 +59,8 @@ if status != "OK":
         msg = email.message_from_bytes(msg_data[0][1])
         # 获取发件人
         from_addr = email.utils.parseaddr(msg.get("From"))[1]
-        # 获取邮件主题或正文（这里简化：直接用主题作为机器码来源）
+        # 获取邮件主题（优先）或正文
         subject = msg.get("Subject", "")
-        # 如果主题为空，尝试从正文提取
         if not subject:
             for part in msg.walk():
                 if part.get_content_type() == "text/plain":
