@@ -10,8 +10,8 @@ import hashlib
 import os
 
 # 从环境变量读取敏感信息
-IMAP_SERVER = "imap.163.com"
-SMTP_SERVER = "smtp.163.com"
+IMAP_SERVER = "imap.qq.com"
+SMTP_SERVER = "smtp.qq.com"
 EMAIL_ADDRESS = os.environ.get("EMAIL_ADDRESS")
 EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
 
