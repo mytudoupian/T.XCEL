@@ -1,6 +1,8 @@
 name: Email Auto Reply
 
 on:
+  push:
+    branches: [main]  # 改为你的默认分支
   schedule:
     - cron: "*/5 * * * *"
   workflow_dispatch:
