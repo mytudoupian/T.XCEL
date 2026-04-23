@@ -7,11 +7,14 @@ import time
 import re
 import hashlib
 
-# ========== 配置区域（请修改为你的信息） ==========
-IMAP_SERVER = "imap.163.com"        # 163 邮箱
+import os
+
+# 从环境变量读取敏感信息
+IMAP_SERVER = "imap.163.com"
 SMTP_SERVER = "smtp.163.com"
-EMAIL_ADDRESS = "your-email@163.com"
-EMAIL_PASSWORD = "your-auth-code"   # 这里填授权码，不是登录密码
+EMAIL_ADDRESS = os.environ.get("EMAIL_ADDRESS")
+EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
+
 
 # 激活码生成函数（请换成你自己的算法）
 def generate_activation_code(machine_code):
