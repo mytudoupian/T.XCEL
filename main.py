@@ -26,33 +26,43 @@ def generate_activation_code(machine_code):
 
 # ========== 核心逻辑（无需修改） ==========
 def extract_machine_code(text):
-    """从邮件正文提取机器码（可根据实际情况调整正则）"""
-    # 示例：匹配类似 "MC-12345678" 或纯数字字母组合
-    match = re.search(r"机器码[:：]?\s*([A-Z0-9\-]+)", text, re.IGNORECASE)
+    """
+    从文本中提取 T.XCEL Machine Code。
+    格式：T.XCEL Machine Code=xxxx//
+    xxxx 为 64~256 个十六进制字符（大小写均可）
+    """
+    pattern = r"T\.XCEL\s+Machine\s+Code=([0-9A-Fa-f]{64,256})//"
+    match = re.search(pattern, text)
     if match:
         return match.group(1).strip()
     return None
 
 def check_and_reply():
-    # 1. 连接 IMAP 收取邮件
+    # 连接邮箱
     mail = imaplib.IMAP4_SSL(IMAP_SERVER)
     mail.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
 
-    # 选中收件箱，并打印详细状态
     status, data = mail.select("INBOX")
     print(f"📬 Select INBOX 结果: 状态={status}, 数据={data}")
     if status != "OK":
-        print("❌ 无法选中收件箱，请检查 163 邮箱权限或网络")
+        print("❌ 无法选中收件箱")
         mail.logout()
         return
 
-    # 2. 搜索未读邮件
+    # 搜索未读邮件
     status, data = mail.search(None, "UNSEEN")
     if status != "OK":
         print("未找到未读邮件")
         return
 
+    max_replies = 5
+    reply_count = 0
+
     for num in data[0].split():
+        if reply_count >= max_replies:
+            print(f"已达到单次最大回复数 {max_replies}，剩余邮件将在下次处理")
+            break
+
         status, msg_data = mail.fetch(num, "(RFC822)")
         if status != "OK":
             continue
@@ -60,40 +70,65 @@ def check_and_reply():
         msg = email.message_from_bytes(msg_data[0][1])
         from_addr = email.utils.parseaddr(msg.get("From"))[1]
         subject = msg.get("Subject", "")
-        if not subject:
+
+        # ✅ 主题匹配：忽略大小写和所有空格，以 "T.XCEL Request For a key" 开头
+        required_prefix = "t.xcelrequestforakey"
+        cleaned_subject = subject.replace(" ", "").lower()
+        if not cleaned_subject.startswith(required_prefix):
+            print(f"⏭️  主题不匹配 ({from_addr}): {subject[:50]}，跳过并标记已读")
+            mail.store(num, "+FLAGS", "\\Seen")
+            continue
+
+        # 获取邮件正文（纯文本）
+        body_text = ""
+        if msg.is_multipart():
             for part in msg.walk():
                 if part.get_content_type() == "text/plain":
-                    body = part.get_payload(decode=True).decode()
-                    subject = body
-                    break
-
-        print(f"收到来自 {from_addr} 的邮件，内容：{subject[:50]}...")
-
-        # 3. 提取机器码并生成激活码
-        machine_code = extract_machine_code(subject)
-        if not machine_code:
-            reply_text = "未能识别机器码，请检查格式后重发。"
+                    payload = part.get_payload(decode=True)
+                    if payload:
+                        body_text = payload.decode(errors='ignore')
+                        break
         else:
-            activation = generate_activation_code(machine_code)
-            reply_text = f"您的机器码：{machine_code}\n激活码：{activation}\n感谢使用！"
+            payload = msg.get_payload(decode=True)
+            if payload:
+                body_text = payload.decode(errors='ignore')
 
-        # 4. 发送回复邮件
-        msg_reply = MIMEText(reply_text, "plain", "utf-8")
-        msg_reply["From"] = EMAIL_ADDRESS
-        msg_reply["To"] = from_addr
-        msg_reply["Subject"] = Header("自动回复：您的激活码", "utf-8")
+        # 正文前300字符检查
+        preview = body_text[:300]
+        print(f"收到来自 {from_addr} 的邮件，主题正确，正文前300字符已提取")
 
-        with smtplib.SMTP_SSL(SMTP_SERVER) as smtp:
-            smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-            smtp.send_message(msg_reply)
+        # 提取机器码（正则已忽略大小写）
+        machine_code = extract_machine_code(preview)
+        if not machine_code:
+            print(f"  ⏭️  未找到有效机器码，跳过并标记已读")
+            mail.store(num, "+FLAGS", "\\Seen")
+            continue
 
-        print(f"已回复 {from_addr}")
+        # 生成激活码并回复
+        activation = generate_activation_code(machine_code)
+        reply_text = f"您的机器码：{machine_code}\n激活码：{activation}\n感谢使用！"
 
-        # 5. 将邮件标记为已读
-        mail.store(num, "+FLAGS", "\\Seen")
+        try:
+            msg_reply = MIMEText(reply_text, "plain", "utf-8")
+            msg_reply["From"] = EMAIL_ADDRESS
+            msg_reply["To"] = from_addr
+            msg_reply["Subject"] = Header("自动回复：您的激活码", "utf-8")
+
+            with smtplib.SMTP_SSL(SMTP_SERVER) as smtp:
+                smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+                smtp.send_message(msg_reply)
+
+            print(f"  ✅ 已回复 {from_addr}")
+            reply_count += 1
+        except Exception as e:
+            print(f"  ❌ 回复失败 ({from_addr}): {e}")
+        finally:
+            mail.store(num, "+FLAGS", "\\Seen")
 
     mail.close()
     mail.logout()
+    print(f"本次共处理邮件，成功回复 {reply_count} 封")
+    print(f"本次共处理邮件，成功回复 {reply_count} 封")
 
 if __name__ == "__main__":
     check_and_reply()
