@@ -1,2 +1,25 @@
 # T.XCEL
 MailAotoReplay
+name: Email Auto Reply
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/15 * * * *"
+jobs:
+  reply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 运行自动回复脚本
+        env:
+          EMAIL_ADDRESS: ${{ secrets.EMAIL_ADDRESS }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+        run: python main.py
