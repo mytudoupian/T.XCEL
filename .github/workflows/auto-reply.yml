@@ -3,10 +3,7 @@ name: Email Auto Reply
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0,5,10,15,20,25,30,35,40,45,50,55 * * * *"
-  push:
-
-    branches: [main]  # 改为你的默认分支
+    - cron: "*/5 * * * *"
 jobs:
   reply:
     runs-on: ubuntu-latest
