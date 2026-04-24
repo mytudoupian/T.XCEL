@@ -1,6 +1,7 @@
 name: Email Auto Reply
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: "*/6 * * * *"
 jobs:
