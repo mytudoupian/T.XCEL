@@ -3,7 +3,7 @@ name: Email Auto Reply
 on:
   workflow_dispatch:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "*/15 * * * *"
 jobs:
   reply:
     runs-on: ubuntu-latest
