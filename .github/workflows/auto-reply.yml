@@ -1,9 +1,11 @@
 name: Email Auto Reply
 
 on:
+  push:
+    branches: [ main ]
   workflow_dispatch:
   schedule:
-    - cron: "*/15 * * * *"
+    - cron: "0,5,10,15,20,25,30,35,40,45,50,55 * * * *"
 jobs:
   reply:
     runs-on: ubuntu-latest
