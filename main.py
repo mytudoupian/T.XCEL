@@ -56,7 +56,9 @@ def extract_machine_code(text):
     # 检查长度是否在合理范围（64~512，可根据实际调整上限）
     if 64 <= len(hex_chars) <= 512:
         return hex_chars
-    return Nonedef extract_machine_code(text):
+    return None
+    
+    def extract_machine_code(text):
     # 先找到 "T.XCEL Machine Code=" 的位置
     start_marker = re.search(r"T\.XCEL\s+Machine\s+Code=", text, re.IGNORECASE)
     if not start_marker:
