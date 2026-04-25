@@ -1,12 +1,16 @@
 name: Email Auto Reply
 
 on:
-  repository_dispatch:          # 必须有这个触发器
-    types: [auto_reply]         # 这个名称必须与 cron-job.org 里 Body 的 event_type 一致
+  repository_dispatch:
+    types: [auto_reply]
+  schedule:
+    - cron: "0 0 1 * *"   # 每月1号UTC 00:00自动保活
   workflow_dispatch:
 
 jobs:
   reply:
+    # 只在“外部触发”或“手动触发”时运行，不影响保活
+    if: github.event_name == 'repository_dispatch' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
@@ -22,3 +26,18 @@ jobs:
           EMAIL_ADDRESS: ${{ secrets.EMAIL_ADDRESS }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
         run: python main.py
+
+  keepalive:
+    # 只在定时触发（每月1号）时运行，防止仓库休眠
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 自动保活提交
+        run: |
+          git config user.name "Auto Keepalive Bot"
+          git config user.email "bot@keepalive.local"
+          git commit --allow-empty -m "chore: keep repository active [skip ci]"
+          git push
