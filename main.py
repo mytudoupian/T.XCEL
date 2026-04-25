@@ -7,7 +7,6 @@ import time
 import re
 import hmac
 import hashlib
-
 import os
 
 # 从环境变量读取敏感信息
@@ -15,74 +14,55 @@ IMAP_SERVER = "imap.qq.com"
 SMTP_SERVER = "smtp.qq.com"
 EMAIL_ADDRESS = os.environ.get("EMAIL_ADDRESS")
 EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
-RSA_PUBLICKEY=os.environ.get("RSA_PUBLICKEY")
-RSA_PRIVATEKEY2=os.environ.get("RSA_PRIVATEKEY2")
+RSA_PUBLICKEY = os.environ.get("RSA_PUBLICKEY")
+RSA_PRIVATEKEY2 = os.environ.get("RSA_PRIVATEKEY2")
+
 
 def generate_activation_code(machine_code):
     # 第一个签名：使用固定 secret 对机器码进行 HMAC
     secret = "my-very-secret-key-2024"
     signature1 = hmac.new(secret.encode(), machine_code.encode(), hashlib.sha256).hexdigest()
-    
-    # 第二个签名：使用私钥对“公钥+机器码”进行 HMAC（防止 NameError，并赋予合理语义）
+
+    # 第二个签名：使用私钥对“公钥+机器码”进行 HMAC
     if RSA_PUBLICKEY and RSA_PRIVATEKEY2:
-        signature2 = hmac.new(RSA_PRIVATEKEY2.encode(), RSA_PUBLICKEY.encode() + machine_code.encode(), hashlib.sha256).hexdigest()
+        signature2 = hmac.new(
+            RSA_PRIVATEKEY2.encode(),
+            RSA_PUBLICKEY.encode() + machine_code.encode(),
+            hashlib.sha256
+        ).hexdigest()
     else:
         signature2 = "0" * 32  # 如果没有配置密钥，则填0，避免崩溃
+
     code = signature1[:32].upper() + signature2[:32].upper()
     return '-'.join([code[i:i+4] for i in range(0, 64, 4)])
 
-# ========== 核心逻辑（无需修改） ==========
+
 def extract_machine_code(text):
-    # 先找到 "T.XCEL Machine Code=" 的位置
+    """只从文本的前300个字符中提取机器码，忽略转发等内容"""
+    text = text[:300]  # 确保只看前面部分
+    # 定位等号位置
     start_marker = re.search(r"T\.XCEL\s+Machine\s+Code=", text, re.IGNORECASE)
     if not start_marker:
-        return None
-    
-    # 从等号之后开始截取
-    start_pos = start_marker.end()
-    remaining = text[start_pos:]
-    
-    # 找到下一个 "//" 的位置
-    end_marker = remaining.find("//")
-    if end_marker == -1:
         return None
 
-    # 截取从等号到 // 之间的内容
-    raw_code = remaining[:end_marker]
-    
-    # 清理所有非十六进制字符（保留 0-9, a-f, A-F），也可以顺手去掉空格、换行等
-    hex_chars = re.sub(r'[^0-9A-Fa-f]', '', raw_code)
-    
-    # 检查长度是否在合理范围（64~512，可根据实际调整上限）
-    if 64 <= len(hex_chars) <= 512:
-        return hex_chars
-    return None
-    
-    def extract_machine_code(text):
-    # 先找到 "T.XCEL Machine Code=" 的位置
-    start_marker = re.search(r"T\.XCEL\s+Machine\s+Code=", text, re.IGNORECASE)
-    if not start_marker:
-        return None
-    
-    # 从等号之后开始截取
     start_pos = start_marker.end()
     remaining = text[start_pos:]
-    
-    # 找到下一个 "//" 的位置
-    end_marker = remaining.find("//")
-    if end_marker == -1:
+
+    # 找到最近的 "//"
+    end_pos = remaining.find("//")
+    if end_pos == -1:
         return None
-    
-    # 截取从等号到 // 之间的内容
-    raw_code = remaining[:end_marker]
-    
-    # 清理所有非十六进制字符（保留 0-9, a-f, A-F），也可以顺手去掉空格、换行等
+
+    raw_code = remaining[:end_pos]
+
+    # 清理所有非十六进制字符（保留 0-9, a-f, A-F）
     hex_chars = re.sub(r'[^0-9A-Fa-f]', '', raw_code)
-    
-    # 检查长度是否在合理范围（64~512，可根据实际调整上限）
+
+    # 长度在 64~512 之间
     if 64 <= len(hex_chars) <= 512:
         return hex_chars
     return None
+
 
 def check_and_reply():
     # 连接邮箱
@@ -118,7 +98,7 @@ def check_and_reply():
         from_addr = email.utils.parseaddr(msg.get("From"))[1]
         subject = msg.get("Subject", "")
 
-        # ✅ 主题匹配：忽略大小写和所有空格，以 "T.XCEL Request For a key" 开头
+        # 主题匹配：忽略大小写和所有空格，以 "T.XCEL Request For a key" 开头
         required_prefix = "t.xcelrequestforakey"
         cleaned_subject = subject.replace(" ", "").lower()
         if not cleaned_subject.startswith(required_prefix):
@@ -140,12 +120,10 @@ def check_and_reply():
             if payload:
                 body_text = payload.decode(errors='ignore')
 
-        # 正文前300字符检查
-        preview = body_text[:300]
-        print(f"收到来自 {from_addr} 的邮件，主题正确，正文前300字符已提取")
+        print(f"收到来自 {from_addr} 的邮件，主题正确")
 
-        # 提取机器码（正则已忽略大小写）
-        machine_code = extract_machine_code(preview)
+        # 提取机器码（函数内部会自动取前300字符）
+        machine_code = extract_machine_code(body_text)
         if not machine_code:
             print(f"  ⏭️  未找到有效机器码，跳过并标记已读")
             mail.store(num, "+FLAGS", "\\Seen")
@@ -175,7 +153,7 @@ def check_and_reply():
     mail.close()
     mail.logout()
     print(f"本次共处理邮件，成功回复 {reply_count} 封")
-    print(f"本次共处理邮件，成功回复 {reply_count} 封")
+
 
 if __name__ == "__main__":
     check_and_reply()
