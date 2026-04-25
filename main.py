@@ -18,13 +18,17 @@ EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
 RSA_PUBLICKEY=os.environ.get("RSA_PUBLICKEY")
 RSA_PRIVATEKEY2=os.environ.get("RSA_PRIVATEKEY2")
 
-# 激活码生成函数（请换成你自己的算法）
 def generate_activation_code(machine_code):
-    """根据机器码生成激活码的算法（示例为 HMAC-SHA256）"""
+    # 第一个签名：使用固定 secret 对机器码进行 HMAC
     secret = "my-very-secret-key-2024"
     signature1 = hmac.new(secret.encode(), machine_code.encode(), hashlib.sha256).hexdigest()
-    signature2 = hmac.new(RSA_Publickey, RSA_PRIVATEKEY2, hashlib.sha256).hexdigest()
-    code = signature1[:32].upper()+signature2[:32].upper()
+    
+    # 第二个签名：使用私钥对“公钥+机器码”进行 HMAC（防止 NameError，并赋予合理语义）
+    if RSA_PUBLICKEY and RSA_PRIVATEKEY2:
+        signature2 = hmac.new(RSA_PRIVATEKEY2.encode(), RSA_PUBLICKEY.encode() + machine_code.encode(), hashlib.sha256).hexdigest()
+    else:
+        signature2 = "0" * 32  # 如果没有配置密钥，则填0，避免崩溃
+    code = signature1[:32].upper() + signature2[:32].upper()
     return '-'.join([code[i:i+4] for i in range(0, 64, 4)])
 
 # ========== 核心逻辑（无需修改） ==========
