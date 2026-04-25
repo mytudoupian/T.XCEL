@@ -33,20 +33,52 @@ def generate_activation_code(machine_code):
 
 # ========== 核心逻辑（无需修改） ==========
 def extract_machine_code(text):
-    preview = text[:300]
-    # 定位等号位置
-    start_marker = re.search(r"T\.XCEL\s+Machine\s+Code=", preview, re.IGNORECASE)
+    # 先找到 "T.XCEL Machine Code=" 的位置
+    start_marker = re.search(r"T\.XCEL\s+Machine\s+Code=", text, re.IGNORECASE)
     if not start_marker:
         return None
+    
+    # 从等号之后开始截取
     start_pos = start_marker.end()
-    remaining = preview[start_pos:]
-    end_pos = remaining.find("//")
-    if end_pos == -1:
+    remaining = text[start_pos:]
+    
+    # 找到下一个 "//" 的位置
+    end_marker = remaining.find("//")
+    if end_marker == -1:
         return None
-    raw_code = remaining[:end_pos]
-    # 清除非十六进制字符
+    
+    # 截取从等号到 // 之间的内容
+    raw_code = remaining[:end_marker]
+    
+    # 清理所有非十六进制字符（保留 0-9, a-f, A-F），也可以顺手去掉空格、换行等
     hex_chars = re.sub(r'[^0-9A-Fa-f]', '', raw_code)
-    if 64 <= len(hex_chars) <= 512:   # 根据实际需要可调整上限
+    
+    # 检查长度是否在合理范围（64~512，可根据实际调整上限）
+    if 64 <= len(hex_chars) <= 512:
+        return hex_chars
+    return Nonedef extract_machine_code(text):
+    # 先找到 "T.XCEL Machine Code=" 的位置
+    start_marker = re.search(r"T\.XCEL\s+Machine\s+Code=", text, re.IGNORECASE)
+    if not start_marker:
+        return None
+    
+    # 从等号之后开始截取
+    start_pos = start_marker.end()
+    remaining = text[start_pos:]
+    
+    # 找到下一个 "//" 的位置
+    end_marker = remaining.find("//")
+    if end_marker == -1:
+        return None
+    
+    # 截取从等号到 // 之间的内容
+    raw_code = remaining[:end_marker]
+    
+    # 清理所有非十六进制字符（保留 0-9, a-f, A-F），也可以顺手去掉空格、换行等
+    hex_chars = re.sub(r'[^0-9A-Fa-f]', '', raw_code)
+    
+    # 检查长度是否在合理范围（64~512，可根据实际调整上限）
+    if 64 <= len(hex_chars) <= 512:
         return hex_chars
     return None
 
