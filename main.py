@@ -27,13 +27,12 @@ def generate_activation_code(machine_code):
 
 # ========== 核心逻辑（无需修改） ==========
 def extract_machine_code(text):
-    """
-    从文本中提取 T.XCEL Machine Code。
-    格式：T.XCEL Machine Code=xxxx//
-    xxxx 为 64~256 个十六进制字符（大小写均可）
-    """
+    # 移除不可见字符（只保留 ASCII 可见字符，避免零宽字符、控制符等干扰匹配）
+    cleaned_text = re.sub(r'[^\x20-\x7e]', '', text)
+    
+    # 匹配 T.XCEL Machine Code=xxxx// ，xxxx 为 64-256 位十六进制字符
     pattern = r"T\.XCEL\s+Machine\s+Code=([0-9A-Fa-f]{64,256})//"
-    match = re.search(pattern, text)
+    match = re.search(pattern, cleaned_text)
     if match:
         return match.group(1).strip()
     return None
