@@ -16,6 +16,13 @@ EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
 RSA_PUBLICKEY = os.environ.get("RSA_PUBLICKEY")
 RSA_PRIVATEKEY2 = os.environ.get("RSA_PRIVATEKEY2")
 
+# ---------- 调试：检查密钥是否存在 ----------
+if not RSA_PUBLICKEY or not RSA_PRIVATEKEY2:
+    print("⚠️ 警告：RSA 密钥未设置！请检查 GitHub Secrets 中是否添加了 RSA_PUBLICKEY 和 RSA_PRIVATEKEY2。")
+else:
+    print(f"✅ 密钥已读取。公钥长度: {len(RSA_PUBLICKEY)}，私钥长度: {len(RSA_PRIVATEKEY2)}")
+# -------------------------------------------
+
 def generate_activation_code(machine_code):
     secret = "my-very-secret-key-2024"
     signature1 = hmac.new(secret.encode(), machine_code.encode(), hashlib.sha256).hexdigest()
@@ -34,18 +41,21 @@ def generate_activation_code(machine_code):
 
 
 def extract_machine_code(text):
-    # 只取前300字符
-    preview = text[:300]
-    # 去除不可见字符，只保留 ASCII 可见字符
-    visible = re.sub(r'[^\x20-\x7e]', '', preview)
+    # 先取前 2000 字符，确保完整包含机器码
+    text = text[:2000]
+    # 剔除所有 HTML 标签
+    text_without_tags = re.sub(r'<[^>]+>', '', text)
+    # 移除不可见字符，只保留 ASCII 可见字符
+    visible = re.sub(r'[^\x20-\x7e]', '', text_without_tags)
 
+    # ---------- 调试信息 ----------
     print("========== 调试信息 ==========")
-    print(f"原始文本前300字符:\n{repr(preview[:300])}")
-    print(f"清理后文本前300字符:\n{repr(visible[:300])}")
+    print(f"去除HTML标签后文本前500字符:\n{visible[:500]}")
     print("==============================")
+    # -----------------------------
 
-    # 允许 // 前有任意空白
-    match = re.search(r"T\.XCEL\s+Machine\s+Code\s*=\s*([0-9A-Fa-f]+)\s*//", visible, re.IGNORECASE)
+    # 宽松匹配：允许等号前后空格，连续十六进制字符直至 //
+    match = re.search(r"T\.XCEL\s+Machine\s+Code\s*=\s*([0-9A-Fa-f]+)//", visible, re.IGNORECASE)
     if match:
         hex_chars = match.group(1)
         print(f"匹配到的十六进制串长度: {len(hex_chars)}")
@@ -95,18 +105,34 @@ def check_and_reply():
             mail.store(num, "+FLAGS", "\\Seen")
             continue
 
+        # ---------- 改进的正文提取 ----------
         body_text = ""
+        html_body = ""
         if msg.is_multipart():
             for part in msg.walk():
-                if part.get_content_type() == "text/plain":
+                content_type = part.get_content_type()
+                if content_type == "text/plain":
                     payload = part.get_payload(decode=True)
                     if payload:
                         body_text = payload.decode(errors='ignore')
                         break
+                elif content_type == "text/html":
+                    payload = part.get_payload(decode=True)
+                    if payload and not html_body:
+                        html_body = payload.decode(errors='ignore')
         else:
             payload = msg.get_payload(decode=True)
             if payload:
-                body_text = payload.decode(errors='ignore')
+                content_type = msg.get_content_type()
+                if content_type == "text/plain":
+                    body_text = payload.decode(errors='ignore')
+                elif content_type == "text/html":
+                    html_body = payload.decode(errors='ignore')
+        
+        # 如果没有纯文本，则从 HTML 中提取纯文本
+        if not body_text and html_body:
+            body_text = re.sub(r'<[^>]+>', '', html_body)
+        # -----------------------------------
 
         print(f"👁️ 处理来自 {from_addr} 的邮件，主题正确")
         machine_code = extract_machine_code(body_text)
