@@ -16,13 +16,6 @@ EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
 RSA_PUBLICKEY = os.environ.get("RSA_PUBLICKEY")
 RSA_PRIVATEKEY2 = os.environ.get("RSA_PRIVATEKEY2")
 
-# ---------- 调试：检查密钥是否存在 ----------
-if RSA_PUBLICKEY is None or RSA_PRIVATEKEY2 is None:
-    print("⚠️ 警告：RSA 密钥未设置！请检查 GitHub Secrets 中是否添加了 RSA_PUBLICKEY 和 RSA_PRIVATEKEY2。")
-else:
-    print(f"✅ 密钥已读取。公钥长度: {len(RSA_PUBLICKEY)}，私钥长度: {len(RSA_PRIVATEKEY2)}")
-# -------------------------------------------
-
 def generate_activation_code(machine_code):
     secret = "my-very-secret-key-2024"
     signature1 = hmac.new(secret.encode(), machine_code.encode(), hashlib.sha256).hexdigest()
