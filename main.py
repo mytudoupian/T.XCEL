@@ -38,29 +38,16 @@ def generate_activation_code(machine_code):
 
 
 def extract_machine_code(text):
-    """只从文本的前300个字符中提取机器码，忽略转发等内容"""
-    text = text[:300]  # 确保只看前面部分
-    # 定位等号位置
-    start_marker = re.search(r"T\.XCEL\s+Machine\s+Code=", text, re.IGNORECASE)
-    if not start_marker:
-        return None
-
-    start_pos = start_marker.end()
-    remaining = text[start_pos:]
-
-    # 找到最近的 "//"
-    end_pos = remaining.find("//")
-    if end_pos == -1:
-        return None
-
-    raw_code = remaining[:end_pos]
-
-    # 清理所有非十六进制字符（保留 0-9, a-f, A-F）
-    hex_chars = re.sub(r'[^0-9A-Fa-f]', '', raw_code)
-
-    # 长度在 64~512 之间
-    if 64 <= len(hex_chars) <= 512:
-        return hex_chars
+    # 取前 300 字符，移除不可见字符（只保留 ASCII 可见字符）
+    preview = text[:300]
+    visible = re.sub(r'[^\x20-\x7e]', '', preview)
+    
+    # 宽松匹配：等号前后可以有任意多个空白
+    match = re.search(r"T\.XCEL\s+Machine\s+Code\s*=\s*([0-9A-Fa-f]+)//", visible, re.IGNORECASE)
+    if match:
+        hex_chars = match.group(1)
+        if 64 <= len(hex_chars) <= 512:
+            return hex_chars
     return None
 
 
