@@ -1,9 +1,10 @@
 name: Email Auto Reply
 
 on:
+  repository_dispatch:          # 必须有这个触发器
+    types: [auto_reply]         # 这个名称必须与 cron-job.org 里 Body 的 event_type 一致
   workflow_dispatch:
-  schedule:
-    - cron: "*/10 * * * *"
+
 jobs:
   reply:
     runs-on: ubuntu-latest
