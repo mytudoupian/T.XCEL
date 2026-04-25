@@ -24,14 +24,14 @@ def generate_activation_code(machine_code):
     signature1 = hmac.new(secret.encode(), machine_code.encode(), hashlib.sha256).hexdigest()
 
     # 第二个签名：使用私钥对“公钥+机器码”进行 HMAC
-    if RSA_PUBLICKEY and RSA_PRIVATEKEY2:
+  #  if 1 #RSA_PUBLICKEY and RSA_PRIVATEKEY2:
         signature2 = hmac.new(
             RSA_PRIVATEKEY2.encode(),
             RSA_PUBLICKEY.encode() + machine_code.encode(),
             hashlib.sha256
         ).hexdigest()
-    else:
-        signature2 = "0" * 32  # 如果没有配置密钥，则填0，避免崩溃
+  #   else:
+  #       signature2 = "0" * 32  # 如果没有配置密钥，则填0，避免崩溃
 
     code = signature1[:32].upper() + signature2[:32].upper()
     return '-'.join([code[i:i+4] for i in range(0, 64, 4)])
