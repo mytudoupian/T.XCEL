@@ -25,6 +25,8 @@ jobs:
         env:
           EMAIL_ADDRESS: ${{ secrets.EMAIL_ADDRESS }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          RSA_PUBLICKEY: ${{ secrets.RSA_PUBLICKEY }}
+          RSA_PRIVATEKEY2: ${{ secrets.RSA_PRIVATEKEY2 }}
         run: python main.py
 
   keepalive:
