@@ -15,15 +15,17 @@ IMAP_SERVER = "imap.qq.com"
 SMTP_SERVER = "smtp.qq.com"
 EMAIL_ADDRESS = os.environ.get("EMAIL_ADDRESS")
 EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
-
+RSA_PUBLICKEY=os.environ.get("RSA_PUBLICKEY")
+RSA_PRIVATEKEY2=os.environ.get("RSA_PRIVATEKEY2")
 
 # 激活码生成函数（请换成你自己的算法）
 def generate_activation_code(machine_code):
     """根据机器码生成激活码的算法（示例为 HMAC-SHA256）"""
     secret = "my-very-secret-key-2024"
-    signature = hmac.new(secret.encode(), machine_code.encode(), hashlib.sha256).hexdigest()
-    code = signature[:16].upper()
-    return '-'.join([code[i:i+4] for i in range(0, 16, 4)])
+    signature1 = hmac.new(secret.encode(), machine_code.encode(), hashlib.sha256).hexdigest()
+    signature2 = hmac.new(RSA_Publickey, RSA_PRIVATEKEY2, hashlib.sha256).hexdigest()
+    code = signature1[:32].upper()+signature2[:32].upper()
+    return '-'.join([code[i:i+4] for i in range(0, 64, 4)])
 
 # ========== 核心逻辑（无需修改） ==========
 def extract_machine_code(text):
