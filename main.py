@@ -18,15 +18,13 @@ RSA_PRIVATEKEY2 = os.environ.get("RSA_PRIVATEKEY2")
 
 
 def generate_activation_code(machine_code):
-    def generate_activation_code(machine_code):
     # --- 调试开始（用完请删除）---
-    print(f"RSA_PUBLICKEY 长度: {len(RSA_PUBLICKEY) if RSA_PUBLICKEY else 'None'}")
-    print(f"RSA_PUBLICKEY 前20字符: {RSA_PUBLICKEY[:20] if RSA_PUBLICKEY else 'None'}")
-    print(f"RSA_PRIVATEKEY2 长度: {len(RSA_PRIVATEKEY2) if RSA_PRIVATEKEY2 else 'None'}")
-    print(f"RSA_PRIVATEKEY2 前20字符: {RSA_PRIVATEKEY2[:20] if RSA_PRIVATEKEY2 else 'None'}")
+    pub_len = len(RSA_PUBLICKEY) if RSA_PUBLICKEY else 0
+    priv_len = len(RSA_PRIVATEKEY2) if RSA_PRIVATEKEY2 else 0
+    print(f"RSA_PUBLICKEY 长度: {pub_len}")
+    print(f"RSA_PRIVATEKEY2 长度: {priv_len}")
     # --- 调试结束 ---
-    
-    # ... 原有逻辑 ...
+
     # 第一个签名：使用固定 secret 对机器码进行 HMAC
     secret = "my-very-secret-key-2024"
     signature1 = hmac.new(secret.encode(), machine_code.encode(), hashlib.sha256).hexdigest()
@@ -39,6 +37,7 @@ def generate_activation_code(machine_code):
             hashlib.sha256
         ).hexdigest()
     else:
+        print("⚠️ 警告：RSA 密钥未配置，激活码安全性降低！")
         signature2 = "0" * 32
 
     code = signature1[:32].upper() + signature2[:32].upper()
