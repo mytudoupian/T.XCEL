@@ -17,10 +17,7 @@ RSA_PUBLICKEY = os.environ.get("RSA_PUBLICKEY")
 RSA_PRIVATEKEY2 = os.environ.get("RSA_PRIVATEKEY2")
 
 # ---------- 调试：检查密钥是否存在 ----------
-if not RSA_PUBLICKEY or not RSA_PRIVATEKEY2:
-    print("⚠️ 警告：RSA_PUBLICKEY 或 RSA_PRIVATEKEY2 未设置！激活码安全性将降低。")
-else:
-    print(f"✅ 密钥已读取。公钥长度: {len(RSA_PUBLICKEY)}，私钥长度: {len(RSA_PRIVATEKEY2)}")
+print(f"✅ 密钥已读取。公钥长度: {len(RSA_PUBLICKEY)}，私钥长度: {len(RSA_PRIVATEKEY2)}")
 # -------------------------------------------
 
 def generate_activation_code(machine_code):
