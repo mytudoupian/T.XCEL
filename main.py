@@ -16,12 +16,10 @@ EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
 RSA_PUBLICKEY = os.environ.get("RSA_PUBLICKEY")
 RSA_PRIVATEKEY2 = os.environ.get("RSA_PRIVATEKEY2")
 
-# ---------- 调试：检查密钥是否存在 ----------
+# 仅做基本提醒，不打印长度
 if not RSA_PUBLICKEY or not RSA_PRIVATEKEY2:
-    print("⚠️ 警告：RSA 密钥未设置！请检查 GitHub Secrets 中是否添加了 RSA_PUBLICKEY 和 RSA_PRIVATEKEY2。")
-else:
-    print(f"✅ 密钥已读取。公钥长度: {len(RSA_PUBLICKEY)}，私钥长度: {len(RSA_PRIVATEKEY2)}")
-# -------------------------------------------
+    print("⚠️  未设置完整的RSA密钥，激活码强度较低。")
+
 
 def generate_activation_code(machine_code):
     secret = "my-very-secret-key-2024"
@@ -41,30 +39,17 @@ def generate_activation_code(machine_code):
 
 
 def extract_machine_code(text):
-    # 先取前 2000 字符，确保完整包含机器码
-    text = text[:2000]
-    # 剔除所有 HTML 标签
-    text_without_tags = re.sub(r'<[^>]+>', '', text)
+    # 先剔除 HTML 标签
+    text_without_tags = re.sub(r'<[^>]+>', '', text[:2000])
     # 移除不可见字符，只保留 ASCII 可见字符
     visible = re.sub(r'[^\x20-\x7e]', '', text_without_tags)
 
-    # ---------- 调试信息 ----------
-    print("========== 调试信息 ==========")
-    print(f"去除HTML标签后文本前500字符:\n{visible[:500]}")
-    print("==============================")
-    # -----------------------------
-
-    # 宽松匹配：允许等号前后空格，连续十六进制字符直至 //
+    # 匹配 T.XCEL Machine Code=xxx// 格式，xxx 为连续十六进制字符
     match = re.search(r"T\.XCEL\s+Machine\s+Code\s*=\s*([0-9A-Fa-f]+)//", visible, re.IGNORECASE)
     if match:
         hex_chars = match.group(1)
-        print(f"匹配到的十六进制串长度: {len(hex_chars)}")
         if 64 <= len(hex_chars) <= 512:
             return hex_chars
-        else:
-            print(f"长度不在64~512之间，实际长度: {len(hex_chars)}")
-    else:
-        print("正则未匹配到任何内容！")
     return None
 
 
@@ -73,15 +58,15 @@ def check_and_reply():
     mail.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
 
     status, data = mail.select("INBOX")
-    print(f"📬 Select INBOX 结果: 状态={status}, 数据={data}")
     if status != "OK":
         print("❌ 无法选中收件箱")
         mail.logout()
         return
 
     status, data = mail.search(None, "UNSEEN")
-    if status != "OK":
-        print("未找到未读邮件")
+    if status != "OK" or not data[0]:
+        mail.close()
+        mail.logout()
         return
 
     max_replies = 5
@@ -101,11 +86,10 @@ def check_and_reply():
 
         required_prefix = "t.xcelrequestforakey"
         if not subject.replace(" ", "").lower().startswith(required_prefix):
-            print(f"⏭️  主题不匹配 ({from_addr}): {subject[:50]}")
             mail.store(num, "+FLAGS", "\\Seen")
             continue
 
-        # ---------- 改进的正文提取 ----------
+        # 提取正文：优先纯文本，否则从 HTML 剥离
         body_text = ""
         html_body = ""
         if msg.is_multipart():
@@ -128,16 +112,12 @@ def check_and_reply():
                     body_text = payload.decode(errors='ignore')
                 elif content_type == "text/html":
                     html_body = payload.decode(errors='ignore')
-        
-        # 如果没有纯文本，则从 HTML 中提取纯文本
+
         if not body_text and html_body:
             body_text = re.sub(r'<[^>]+>', '', html_body)
-        # -----------------------------------
 
-        print(f"👁️ 处理来自 {from_addr} 的邮件，主题正确")
         machine_code = extract_machine_code(body_text)
         if not machine_code:
-            print(f"❌ 未找到有效机器码，跳过")
             mail.store(num, "+FLAGS", "\\Seen")
             continue
 
@@ -152,16 +132,15 @@ def check_and_reply():
             with smtplib.SMTP_SSL(SMTP_SERVER) as smtp:
                 smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
                 smtp.send_message(msg_reply)
-            print(f"✅ 已回复 {from_addr}")
             reply_count += 1
         except Exception as e:
-            print(f"❌ 回复失败 ({from_addr}): {e}")
+            print(f"回复失败 ({from_addr}): {e}")
         finally:
             mail.store(num, "+FLAGS", "\\Seen")
 
     mail.close()
     mail.logout()
-    print(f"本次共处理邮件，成功回复 {reply_count} 封")
+    print(f"本次成功回复 {reply_count} 封")
 
 
 if __name__ == "__main__":
