@@ -33,14 +33,21 @@ def generate_activation_code(machine_code):
 
 # ========== 核心逻辑（无需修改） ==========
 def extract_machine_code(text):
-    # 移除不可见字符（只保留 ASCII 可见字符，避免零宽字符、控制符等干扰匹配）
-    cleaned_text = re.sub(r'[^\x20-\x7e]', '', text)
-    
-    # 匹配 T.XCEL Machine Code=xxxx// ，xxxx 为 64-256 位十六进制字符
-    pattern = r"T\.XCEL\s+Machine\s+Code=([0-9A-Fa-f]{64,256})//"
-    match = re.search(pattern, cleaned_text)
-    if match:
-        return match.group(1).strip()
+    preview = text[:300]
+    # 定位等号位置
+    start_marker = re.search(r"T\.XCEL\s+Machine\s+Code=", preview, re.IGNORECASE)
+    if not start_marker:
+        return None
+    start_pos = start_marker.end()
+    remaining = preview[start_pos:]
+    end_pos = remaining.find("//")
+    if end_pos == -1:
+        return None
+    raw_code = remaining[:end_pos]
+    # 清除非十六进制字符
+    hex_chars = re.sub(r'[^0-9A-Fa-f]', '', raw_code)
+    if 64 <= len(hex_chars) <= 512:   # 根据实际需要可调整上限
+        return hex_chars
     return None
 
 def check_and_reply():
