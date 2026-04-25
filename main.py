@@ -46,7 +46,7 @@ def extract_machine_code(text):
     end_marker = remaining.find("//")
     if end_marker == -1:
         return None
-    
+
     # 截取从等号到 // 之间的内容
     raw_code = remaining[:end_marker]
     
