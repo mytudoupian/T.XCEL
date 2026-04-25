@@ -3,7 +3,6 @@ import email
 import smtplib
 from email.mime.text import MIMEText
 from email.header import Header
-import time
 import re
 import hmac
 import hashlib
@@ -19,16 +18,29 @@ RSA_PRIVATEKEY2 = os.environ.get("RSA_PRIVATEKEY2")
 
 
 def generate_activation_code(machine_code):
+    def generate_activation_code(machine_code):
+    # --- 调试开始（用完请删除）---
+    print(f"RSA_PUBLICKEY 长度: {len(RSA_PUBLICKEY) if RSA_PUBLICKEY else 'None'}")
+    print(f"RSA_PUBLICKEY 前20字符: {RSA_PUBLICKEY[:20] if RSA_PUBLICKEY else 'None'}")
+    print(f"RSA_PRIVATEKEY2 长度: {len(RSA_PRIVATEKEY2) if RSA_PRIVATEKEY2 else 'None'}")
+    print(f"RSA_PRIVATEKEY2 前20字符: {RSA_PRIVATEKEY2[:20] if RSA_PRIVATEKEY2 else 'None'}")
+    # --- 调试结束 ---
+    
+    # ... 原有逻辑 ...
     # 第一个签名：使用固定 secret 对机器码进行 HMAC
     secret = "my-very-secret-key-2024"
     signature1 = hmac.new(secret.encode(), machine_code.encode(), hashlib.sha256).hexdigest()
 
-    # 第二个签名：使用私钥对“公钥+机器码”进行 HMAC
+    # 第二个签名：使用私钥对“公钥+机器码”进行 HMAC，如果密钥不存在则填0
+    if RSA_PUBLICKEY and RSA_PRIVATEKEY2:
         signature2 = hmac.new(
             RSA_PRIVATEKEY2.encode(),
             RSA_PUBLICKEY.encode() + machine_code.encode(),
             hashlib.sha256
         ).hexdigest()
+    else:
+        signature2 = "0" * 32
+
     code = signature1[:32].upper() + signature2[:32].upper()
     return '-'.join([code[i:i+4] for i in range(0, 64, 4)])
 
@@ -37,7 +49,7 @@ def extract_machine_code(text):
     # 取前 300 字符，移除不可见字符（只保留 ASCII 可见字符）
     preview = text[:300]
     visible = re.sub(r'[^\x20-\x7e]', '', preview)
-    
+
     # 宽松匹配：等号前后可以有任意多个空白
     match = re.search(r"T\.XCEL\s+Machine\s+Code\s*=\s*([0-9A-Fa-f]+)//", visible, re.IGNORECASE)
     if match:
