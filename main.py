@@ -73,7 +73,7 @@ def verify_and_extract_base(machine_code: str):
 # ==================== 激活码生成（40 位） ====================
 def generate_activation_code(base_hex: str, rand_hex: str) -> str:
     """base_hex: 32 位固定基础码, rand_hex: 8 位随机数"""
-    hash_input = base_hex + SERVER_SECRET
+    hash_input = base_hex # + SERVER_SECRET
     active_hash = hashlib.md5(hash_input.encode()).hexdigest()[:32]
     return active_hash + rand_hex
 
@@ -185,7 +185,7 @@ def check_and_reply():
 
         # 生成 40 位激活码
         activation = generate_activation_code(base_hex, rand_hex)
-        reply_text = f"👀您的机器码：{raw_code}\n激活码：{activation}\n🎲感谢使用！"
+        reply_text = f"👀您的机器码：{raw_code}\n🗝️激活码：{activation}\n\n🎲感谢使用！"
 
         try:
             msg_reply = MIMEText(reply_text, "plain", "utf-8")
