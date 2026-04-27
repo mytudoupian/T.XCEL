@@ -185,12 +185,7 @@ def check_and_reply():
 
         # 生成 40 位激活码
         activation = generate_activation_code(base_hex, rand_hex)
-        reply_text = (
-            f"您的固定设备码：{base_hex}\n"
-            f"本次随机数：{rand_hex}\n"
-            f"激活码：{activation}\n"
-            f"感谢使用！"
-        )
+        reply_text = f"👀您的机器码：{raw_code}\n激活码：{activation}\n🎲感谢使用！"
 
         try:
             msg_reply = MIMEText(reply_text, "plain", "utf-8")
