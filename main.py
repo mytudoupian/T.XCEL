@@ -106,15 +106,19 @@ def generate_activation_code(base_hex: str) -> str:
 
 # ==================== 邮件正文中提取机器码 ====================
 def extract_machine_code(text: str):
-    """从文本中提取符合格式的 72 位机器码"""
-    # 先取前 2000 字符，剔除 HTML 标签，保留可见字符
+    """提取带或不带分隔符的 72 位机器码"""
     text = text[:2000]
     text_without_tags = re.sub(r'<[^>]+>', '', text)
     visible = re.sub(r'[^\x20-\x7e]', '', text_without_tags)
 
-    match = re.search(r"T\.XCEL\s+Machine\s+Code\s*=\s*([0-9A-Fa-f]{72})//", visible, re.IGNORECASE)
+    # 匹配从 'T.XCEL Machine Code=' 到 '//' 之间的所有内容（含分隔符）
+    match = re.search(r"T\.XCEL\s+Machine\s+Code\s*=\s*(.+?)//", visible, re.IGNORECASE)
     if match:
-        return match.group(1).strip()
+        raw = match.group(1).strip()
+        # 去除非十六进制字符（-、空格等），只保留 0-9 A-F a-f
+        hex_str = re.sub(r'[^0-9A-Fa-f]', '', raw)
+        if len(hex_str) == 72:
+            return hex_str
     return None
 
 # ==================== 邮箱配置（从环境变量读取） ====================
