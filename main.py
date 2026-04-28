@@ -71,11 +71,38 @@ def verify_and_extract_base(machine_code: str):
     return base_hex, rand_hex
 
 # ==================== 激活码生成（40 位） ====================
-def generate_activation_code(base_hex: str, rand_hex: str) -> str:
-    """base_hex: 32 位固定基础码, rand_hex: 8 位随机数"""
-    hash_input = base_hex # + SERVER_SECRET
-    active_hash = hashlib.md5(hash_input.encode()).hexdigest()[:32]
-    return active_hash + rand_hex
+import hashlib
+
+# ... 前面常量与 VBA 一致 ...
+
+def generate_activation_code(base_hex: str) -> str:
+    """
+    生成一个 48 位十六进制激活码（带分隔符则会变成 59 字符）。
+    每次调用产生不同激活码，但都能通过 VBA 验证。
+    """
+    # 1. 生成新的随机数 (4字节)
+    new_rand = os.urandom(4)                     # 4 bytes
+    new_rand_hex = new_rand.hex()                # 8 hex
+
+    # 2. 准备种子：共享密钥 + 随机数
+    seed = SHARED_KEY_BYTES + new_rand           # 6 bytes
+    stream = lcg_generate_stream(seed, 16)       # 16 bytes
+
+    # 3. 加密基础码
+    base_bytes = bytes.fromhex(base_hex)
+    enc_base = bytes(a ^ b for a, b in zip(base_bytes, stream))
+    enc_base_hex = enc_base.hex()                # 32 hex
+
+    # 4. 计算校验和：MD5(随机数 + 加密基础码) 的前8位
+    check_data = new_rand_hex + enc_base_hex
+    checksum = hashlib.md5(check_data.encode()).hexdigest()[:8]
+
+    # 5. 组合完整激活码（48 hex）
+    raw_activation = new_rand_hex + enc_base_hex + checksum
+
+    # 6. 格式化（每 6 位加一个 "-"，或每 4 位加，这里用 6 位更紧凑）
+    formatted = '-'.join([raw_activation[i:i+6] for i in range(0, 48, 6)])
+    return formatted
 
 # ==================== 邮件正文中提取机器码 ====================
 def extract_machine_code(text: str):
@@ -184,8 +211,10 @@ def check_and_reply():
             continue
 
         # 生成 40 位激活码
-        activation = generate_activation_code(base_hex, rand_hex)
-        reply_text = f"👀您的机器码：{raw_code}\n🗝️激活码：{activation}\n\n🎲感谢使用！"
+        # 生成 48 位激活码（带分隔符）
+        activation = generate_activation_code(base_hex)
+        formatted_raw = '-'.join([raw_code[i:i+8] for i in range(0, 72, 8)])
+        reply_text = f"👀您的机器码：{formatted_raw}\n🗝️激活码：{activation}\n\n🎲感谢使用！"
 
         try:
             msg_reply = MIMEText(reply_text, "plain", "utf-8")
